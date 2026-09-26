@@ -1,75 +1,72 @@
 import os
-import sys
-import asyncio
 import logging
-from pathlib import Path
-
-import edge_tts
+import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+import edge_tts
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("voiceover_bot")
+# Logging setup taaki errors saaf dikhein
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-TELEGRAM_BOT_TOKEN = "8869199245:AAE-R5Ns726Wm8VIg19D-1Z1by3366QaFRo"
+# Naya Telegram Bot Token
+TOKEN = "8657911286:AAHlXIfLZOAc0YEYQ4cus77oXhLOjilc9g"
 
-# YouTube Shorts ke liye sabse best energetic aur viral hindi voice
-VOICE_NAME = "hi-IN-SwaraNeural"
+# Text ko audio (voice) me convert karne ka function
+async def text_to_speech(text, output_file="voice.mp3"):
+    voice = "en-US-AriaNeural"  # Aap apni pasand ki voice bhi rakh sakte hain
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(output_file)
 
-async def generate_voiceover(text: str, out_path: str):
-    communicate = edge_tts.Communicate(text, VOICE_NAME, rate="+5%", pitch="+0Hz")
-    await communicate.save(out_path)
-
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Jab bhi user message bheje ga, ye function chalega
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
-    if not user_text:
-        return
-
-    msg = await update.message.reply_text("🎙️ Shorts ke liye shandaar voiceover taiyar ho raha hai...")
+    await update.message.reply_text("Aapka message mil gaya! Audio ban raha hai...")
     
-    output_audio = "voiceover.mp3"
-    try:
-        # Edge TTS ke zariye voiceover generate karein
-        asyncio.run(generate_voiceover(user_text, output_audio))
-        
-        # Telegram par audio file bhejen
-        await update.message.reply_audio(
-            audio=open(output_audio, "rb"), 
-            title="Shorts Voiceover", 
-            caption="🔥 Yeh lijiye aapka viral style voiceover ready hai!"
-        )
-        await msg.delete()
-        
-    except Exception as e:
-        log.exception("Voiceover generation failed")
-        await msg.edit_text(f"Kuch gadbad ho gayi: {e}")
+    # Audio generate karein
+    audio_path = "output.mp3"
+    await text_to_speech(user_text, audio_path)
+    
+    # Telegram par audio file bhejein
+    with open(audio_path, "rb") as audio:
+        await update.message.reply_voice(voice=audio)
 
-def main():
-    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    log.info("Voiceover Bot running - send text on Telegram.")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
-
-import os
+# ==========================================
+# RENDER PORT BINDING SERVER (Port Error Hatane ke liye)
+# ==========================================
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 
-# Render ke liye ek chhota sa dummy HTTP server taaki port open rahe
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"Bot is running!")
+        self.wfile.write(b"Bot is running successfully!")
 
 def run_server():
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(('0.0.0.0', port), SimpleHandler)
     server.serve_forever()
 
-# Server ko background thread me chalane ke liye
-t = threading.Thread(target=run_server)
-t.daemon = True
-t.start()
+# Server ko background thread me chalana
+server_thread = threading.Thread(target=run_server)
+server_thread.daemon = True
+server_thread.start()
+# ==========================================
+
+def main():
+    # Bot Application Build karein
+    application = ApplicationBuilder().token(TOKEN).build()
+
+    # Message Handler jodein
+    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+
+    # Bot ko start karein (Polling)
+    print("Bot is starting...")
+    application.run_polling()
+
+if __name__ == '__main__':
+    main()
+        
