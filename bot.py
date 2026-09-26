@@ -12,7 +12,7 @@ logging.basicConfig(
 )
 
 # Naya Telegram Bot Token
-TOKEN = "8657911286:AAHlXIfLZOAc0YEYQ4cus77oXhLOjilc9g"
+TOKEN = "8940474898:AAE0OcA2BDfDxboo52D0p19OO3I0ZJPjPQk"
 
 # Text ko audio (voice) me convert karne ka function
 async def text_to_speech(text, output_file="voice.mp3"):
