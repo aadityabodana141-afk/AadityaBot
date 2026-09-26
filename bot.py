@@ -4,10 +4,6 @@ import asyncio
 import logging
 from pathlib import Path
 
-# Event loop conflict ko thik karne ke liye
-import nest_asyncio
-nest_asyncio.apply()
-
 import edge_tts
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
